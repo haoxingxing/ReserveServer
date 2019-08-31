@@ -71,3 +71,8 @@ Thumbs.db
 *.dll
 *.exe
 
+/.vs/ReserveProxyServer/v16
+/debug
+/release/moc_predefs.h.cbt
+/release
+/x64/Debug

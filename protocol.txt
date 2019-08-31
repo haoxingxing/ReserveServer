@@ -1,0 +1,16 @@
+heartbeat. => notice the server \
+              if the client doesnt send the heartbeat in every 30s,socket will be closed;
+create <tcp/udp> <port>.
+    return <success <key>/failed <reason>>
+
+  CLIENT call server for socket
+  SERVER return a socket key
+  CLIENT connect to server using the key
+
+connect <key>.
+    return <success/failed <notfound/connected>>
+  THEN this socket will use as a transport way
+  SERVER will redirect all connections connected to <port> to this socket 
+
+close <key>.
+    return <success/failed <notfound(not_created_by_you)>>
