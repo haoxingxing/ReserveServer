@@ -7,7 +7,7 @@ Controller::Controller(QObject* parent, qintptr socketDescriptor, QString nickna
 {
 }
 
-QMap<QString, QThread*> Controller::pool;
+QMap<QString, Reversal*> Controller::pool;
 
 Controller::~Controller()
 {
@@ -18,34 +18,30 @@ void Controller::process()
 {
 	control = new QTcpSocket(this);
 	control->setSocketDescriptor(socketDescriptor);
+	connect(control, &QTcpSocket::readyRead, &loop, [&] {loop.exit(true); });
+	connect(control, &QTcpSocket::disconnected, &loop, [&] {loop.exit(false); });
 	DEB << "Controller started";
 	QByteArray data;
-	while (control->waitForReadyRead())
+	while (loop.exec())
 	{
 		while (!control->atEnd())
 		{
 			data.append(control->read(100));
 		}
-		if (data.size() < 2 || data.right(2) != "\r\n")
+		if (data.size() < 2 || data.right(1) != "\n")
 			continue;
-		data.chop(2);
+		data=data.simplified();
 		if (data == "heartbeat")
 		{
-			control->write("heartbeat\r\n");
-			control->flush();
+			send_msg("heartbeat");
 		}
 		else
 		{
 			DEB << data;
 			auto r = data.split(' ');
-			if (r.size() < 1)
+			if (r.empty())
 			{
-				control->write("failed err_cmd\r\n");
-				control->flush();
-			}
-			else if (r[0].length() == 10)
-			{
-				emit worker_msg(r);
+				send_msg("failed err_cmd");
 			}
 			else if (r[0] == "create")
 			{
@@ -67,11 +63,12 @@ void Controller::process()
 						auto key = generateRandomString(10);
 						QThread* t = new QThread;
 						Reversal* r = new Reversal(nullptr, port, key);
-						connect(t, &QThread::started, r, &Reversal::init);
-						connect(r, &Reversal::send_control, this, &Controller::send_msg, Qt::DirectConnection);
-						connect(this, &Controller::worker_msg, r, &Reversal::process, Qt::DirectConnection);
 						r->moveToThread(t);
-						pool.insert(key, t);
+						connect(t, &QThread::started, r, &Reversal::init);
+						connect(r, &Reversal::send_control, this, &Controller::send_msg);
+						connect(control, &QTcpSocket::disconnected, r, &Reversal::deleteLater);
+						connect(r, &Reversal::ended, t, [=] {t->quit(); t->deleteLater(); });
+						pool.insert(key, r);
 						t->start();
 						send_msg("success " + key);
 					}
@@ -87,14 +84,44 @@ void Controller::process()
 				{
 					if (r[1] != "0")
 					{
-						DEB << "closing sockets named " << r[1];
-						this->send_msg("failed not_support");
+						if (pool.contains(r[1]))
+						{
+							DEB << "closing sockets named " << r[1];
+							pool[r[1]]->process({ "close" });
+							pool.remove(r[1]);
+						}
+						else
+						{
+							send_msg("failed not_found");
+						}
 					}
 					else
 					{
 						control->disconnectFromHost();
 					}
 				}
+			}
+			else if (r[0] == "connect")
+			{
+				if (r.size() != 2)
+				{
+					send_msg("failed err_args");
+				}
+				else
+				{
+					if(pool.contains(r[1]))
+					{
+						pool[r[1]]->process({ "connect"},control);
+					}
+					else
+					{
+						send_msg("failed not_found");
+					}
+				}
+			}
+			else
+			{
+				send_msg("failed cmd_not_found");
 			}
 		}
 

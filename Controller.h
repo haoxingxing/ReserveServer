@@ -6,6 +6,7 @@
 #include "Reversal.h"
 #include <QTime>
 #include <QThread>
+#include <qeventloop.h>
 
 class QTcpSocket;
 
@@ -21,9 +22,11 @@ public:
 signals:
 	void ended();
 	void worker_msg(QList<QByteArray>);
+	void request_connecting(QByteArray name);
 private:
 	QString nickname;
 	qintptr socketDescriptor;
 	QTcpSocket* control = nullptr;
-	static QMap<QString, QThread*> pool;
+	QEventLoop loop;
+	static QMap<QString, Reversal*> pool;
 };
