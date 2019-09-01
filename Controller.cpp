@@ -104,7 +104,7 @@ void Controller::process()
 			}
 			else if (r[0] == "connect")
 			{
-				if (r.size() != 2)
+				if (r.size() < 2)
 				{
 					send_msg("failed err_args");
 				}
