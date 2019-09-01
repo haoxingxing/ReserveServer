@@ -18,8 +18,8 @@ void Controller::process()
 {
 	control = new QTcpSocket(this);
 	control->setSocketDescriptor(socketDescriptor);
-	connect(control, &QTcpSocket::readyRead, &loop, [&] {loop.exit(true); });
-	connect(control, &QTcpSocket::disconnected, &loop, [&] {loop.exit(false); });
+	connect(control, &QTcpSocket::readyRead, &loop, [&] {DEB << "BYTE RECVED"; loop.exit(true); });
+	connect(control, &QTcpSocket::disconnected, &loop, [&] {DEB << "DISCONNECTED"; loop.exit(false); });
 	DEB << "Controller started";
 	QByteArray data;
 	while (loop.exec())
