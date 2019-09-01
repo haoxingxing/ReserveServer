@@ -28,9 +28,10 @@ void Controller::process()
 		{
 			data.append(control->read(100));
 		}
-		if (data.size() < 2 || data.right(1) != "\n")
+		if (data.size() < 2 || !data.contains('.'))
 			continue;
-		data=data.simplified();
+		data = data.simplified();
+		data.chop(1);
 		if (data == "heartbeat")
 		{
 			send_msg("heartbeat");
