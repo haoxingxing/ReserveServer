@@ -2,6 +2,7 @@
 #include "tools.h"
 #include <QTcpSocket>
 #include "Controller.h"
+#include <iostream>
 
 Reversal::Reversal(QObject* parent, qintptr port, QString nickname)
 	: QObject(parent),port(port),nickname(nickname)
@@ -64,11 +65,15 @@ void Reversal::process(QList<QByteArray> r, QTcpSocket* _this)
 				connect(_this, &QTcpSocket::readyRead, &loop, [&] {loop.exit(true); });
 				while (loop.exec())
 				{
+					std::cout << "+";
 					socket->write(_this->readAll());
 					_this->write(socket->readAll());
 					socket->flush();
 					_this->flush();
 				}
+				loop.disconnect();
+				socket->disconnect();
+				_this->disconnect();
 				_this->disconnectFromHost();
 				socket->disconnectFromHost();
 			}
