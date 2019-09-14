@@ -26,7 +26,7 @@ void Controller::process()
 	{
 		while (!control->atEnd())
 		{
-			data.append(control->read(100));
+			data.append(control->read(2));
 		}
 		if (data.size() < 2 || !data.contains('.'))
 			continue;

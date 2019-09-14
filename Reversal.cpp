@@ -52,8 +52,6 @@ void Reversal::process(QList<QByteArray> r, QTcpSocket* _this)
 				server->disconnect(&l);
 				emit send_control(nickname + " connected " + QString::number(cur_pd.front()));
 				DEB << "connected " << cur_pd.front();
-				_this->write("connected\r\n");
-				_this->flush();
 				auto socket = new QTcpSocket();
 				socket->setSocketDescriptor(cur_pd.takeFirst());
 				mutex.unlock();
@@ -63,15 +61,17 @@ void Reversal::process(QList<QByteArray> r, QTcpSocket* _this)
 				connect(socket, &QTcpSocket::disconnected, &loop, [&] {loop.exit(false); });
 				connect(_this, &QTcpSocket::disconnected, &loop, [&] {loop.exit(false); });
 				connect(_this, &QTcpSocket::readyRead, &loop, [&] {loop.exit(true); });
-				while (loop.exec())
+				QByteArray a;
+				while (socket->isOpen()&& _this->isOpen()&&loop.exec())
 				{
 					std::cout << "+";
-					socket->write(_this->readAll());
-					_this->write(socket->readAll());
+					socket->write(a=_this->readAll());
+					//DEB << "c->s " << a;
+					_this->write(a=socket->readAll());
+					//DEB << "s->c " << a;
 					socket->flush();
 					_this->flush();
 				}
-				loop.disconnect();
 				socket->disconnect();
 				_this->disconnect();
 				_this->disconnectFromHost();
